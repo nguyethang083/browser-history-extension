@@ -14,7 +14,8 @@ const Popup = () => {
 
   return (
     <div style={{ padding: "1rem" }}>
-      <h1>Browser History Fetcher</h1>
+      <h1>Browser History Sync</h1>
+      <p>Click the button below to fetch your browser history.</p>
       <button onClick={handleFetchHistory}>Fetch Data</button>
     </div>
   )
