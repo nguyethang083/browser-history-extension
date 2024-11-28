@@ -9,7 +9,13 @@
     "build": "plasmo build",
     "package": "plasmo package"
   },
+  "compilerOptions": {
+    "types": [
+      "chrome"
+    ]
+  },
   "dependencies": {
+    "@plasmohq/storage": "^1.13.0",
     "axios": "^1.7.8",
     "plasmo": "0.89.4",
     "react": "18.2.0",
@@ -28,18 +34,22 @@
     "typescript": "5.3.3"
   },
   "manifest": {
-    "host_permissions": [
-      "http://localhost:3000/*"
-    ],
     "permissions": [
-      "history"
+      "history",
+      "downloads",
+      "storage",
+      "tabs",
+      "activeTab",
+      "background"
+    ],
+    "host_permissions": [
+      "<all_urls>"
     ],
     "background": {
-      "service_worker": "background.ts",
-      "persistent": false
+      "service_worker": "background.ts"
     },
-    "content_security_policy": {
-      "extension_pages": "script-src 'self'; object-src 'self';"
+    "action": {
+      "default_popup": "popup.html"
     }
   }
 }

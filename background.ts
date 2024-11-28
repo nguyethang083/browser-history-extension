@@ -1,40 +1,65 @@
-// background.ts
-import axios from "axios"
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("Extension installed and ready.")
+})
 
-// Function to fetch browser history
-async function fetchBrowserHistory() {
+// Listen for a message from the UI
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "fetchBrowserHistory") {
+    fetchAndSaveBrowserHistory()
+    sendResponse({ status: "started" })
+  }
+})
+
+async function fetchAndSaveBrowserHistory() {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
   try {
-    const startTime = new Date().setHours(0, 0, 0, 0) // Start of the day
+    chrome.history.search(
+      {
+        text: "",
+        startTime: today.getTime(),
+        maxResults: 1000
+      },
+      async (historyItems) => {
+        const historyData = historyItems.map((item) => ({
+          url: item.url,
+          title: item.title,
+          visitCount: item.visitCount,
+          lastVisitTime: new Date(item.lastVisitTime).toISOString()
+        }))
 
-    // Fetch the user's browser history
-    const historyItems = await chrome.history.search({
-      text: "",
-      startTime,
-      maxResults: 1000
-    })
+        const fileName = `browser_history_${today.toISOString().split("T")[0]}.json`
 
-    // Format history data
-    const formattedHistory = historyItems.map((item) => ({
-      id: item.id,
-      title: item.title || "No title",
-      url: item.url || "No URL",
-      visitCount: item.visitCount || 0,
-      lastVisitTime: item.lastVisitTime || 0
-    }))
+        try {
+          // Convert historyData to a data URL
+          const jsonData = JSON.stringify(historyData, null, 2)
+          const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(jsonData)}`
 
-    // Send the data to the backend
-    await axios.post("http://localhost:3000/browser-history/store", {
-      data: formattedHistory
-    })
-
-    console.log("Browser history sent successfully.")
+          // Use chrome.downloads.download to save the file
+          chrome.downloads.download(
+            {
+              url: dataUrl,
+              filename: fileName
+            },
+            (downloadId) => {
+              if (chrome.runtime.lastError) {
+                console.error(
+                  `Download error: ${chrome.runtime.lastError.message}`
+                )
+              } else {
+                console.log(`Browser history saved as ${fileName}`)
+              }
+            }
+          )
+        } catch (dataUrlError) {
+          console.error(
+            `Error creating data URL or saving file: ${dataUrlError.message}`
+          )
+        }
+      }
+    )
   } catch (error) {
-    console.error("Error fetching or sending browser history:", error)
+    console.error(`Failed to fetch history: ${error.message}`)
   }
 }
-
-// Set an interval to fetch and send browser history every hour
-setInterval(fetchBrowserHistory, 3600000) // 3600000 ms = 1 hour
-
-// Fetch browser history immediately on extension load
-fetchBrowserHistory()
