@@ -17,8 +17,12 @@
   "dependencies": {
     "@plasmohq/storage": "^1.13.0",
     "axios": "^1.7.8",
+    "chart.js": "^4.4.6",
+    "dayjs": "^1.11.13",
+    "groq-sdk": "^0.8.0",
     "plasmo": "0.89.4",
     "react": "18.2.0",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "18.2.0"
   },
   "devDependencies": {
@@ -42,7 +46,8 @@
       "tabs",
       "activeTab",
       "background",
-      "identity"
+      "identity",
+      "https://api.groq.com/*"
     ],
     "host_permissions": [
       "<all_urls>"
