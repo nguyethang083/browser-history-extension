@@ -1,84 +1,10 @@
-import { ArcElement, Chart as ChartJS, Legend, Tooltip } from "chart.js"
-import React, { useState } from "react"
-import { Doughnut } from "react-chartjs-2"
+import { useState } from "react"
 
-ChartJS.register(ArcElement, Tooltip, Legend)
+import ChatbotTab from "~components/ChatbotTab"
+import OverviewTab from "~components/OverviewTab"
 
 const Popup = () => {
-  const [chartData, setChartData] = useState(null)
-  const [mostFrequentSite, setMostFrequentSite] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
-
-  const fetchDailyReport = () => {
-    setLoading(true)
-    setErrorMessage("")
-
-    chrome.runtime.sendMessage({ action: "fetchDailyReport" }, (response) => {
-      if (response?.status === "success") {
-        updateChartData(response.report)
-      } else if (response?.message === "No report found.") {
-        processBrowserHistory() // Trigger processing if no report exists
-      } else {
-        setErrorMessage(response?.message || "Error fetching data.")
-        setLoading(false)
-      }
-    })
-  }
-
-  const processBrowserHistory = () => {
-    chrome.runtime.sendMessage(
-      { action: "processBrowserHistory" },
-      (response) => {
-        if (response?.status === "success") {
-          fetchDailyReport() // Fetch the new report after processing
-        } else {
-          setErrorMessage(response?.message || "Error processing history.")
-          setLoading(false)
-        }
-      }
-    )
-  }
-
-  const updateChartData = (report) => {
-    const { categories, mostFrequentSite } = report
-
-    // Update the most frequent site
-    setMostFrequentSite(mostFrequentSite)
-
-    // Prepare chart data
-    const filteredLabels = Object.keys(categories).filter(
-      (key) => categories[key] > 0
-    )
-    const filteredValues = filteredLabels.map((key) => categories[key])
-
-    const colors = [
-      "#FF6384",
-      "#36A2EB",
-      "#FFCE56",
-      "#4BC0C0",
-      "#9966FF",
-      "#FF9F40",
-      "#FFC0CB",
-      "#FFD700",
-      "#8A2BE2",
-      "#00FF7F"
-    ]
-
-    setChartData({
-      labels: filteredLabels,
-      datasets: [
-        {
-          label: "Categories",
-          data: filteredValues,
-          backgroundColor: colors.slice(0, filteredLabels.length),
-          hoverBackgroundColor: colors.slice(0, filteredLabels.length)
-        }
-      ]
-    })
-
-    setLoading(false)
-  }
+  const [activeTab, setActiveTab] = useState("overview")
 
   return (
     <div
@@ -89,46 +15,53 @@ const Popup = () => {
         background: "#f9f9f9",
         border: "1px solid #ddd",
         borderRadius: "10px",
-        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)"
+        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
+        fontFamily: "Arial, sans-serif"
       }}>
-      <h1>Your Daily Activities</h1>
-      <button
-        onClick={fetchDailyReport}
+      <div
         style={{
+          display: "flex",
           marginBottom: "1rem",
-          padding: "0.5rem 1rem",
-          background: "#4CAF50",
-          color: "#fff",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer"
+          borderBottom: "1px solid #ddd"
         }}>
-        Fetch Data
-      </button>
-      {loading ? (
-        <p>Loading...</p>
-      ) : errorMessage ? (
-        <p>{errorMessage}</p>
-      ) : (
-        <>
-          {chartData && <Doughnut data={chartData} />}
-          {mostFrequentSite && (
-            <div
-              style={{
-                marginTop: "1rem",
-                padding: "0.5rem",
-                background: "#e9f7ef",
-                border: "1px solid #c3e6cb",
-                borderRadius: "5px"
-              }}>
-              <h3 style={{ margin: "0 0 0.5rem" }}>Most Frequent Site</h3>
-              <p style={{ margin: 0 }}>
-                <strong>{mostFrequentSite.url}</strong>
-              </p>
-            </div>
-          )}
-        </>
-      )}
+        <button
+          onClick={() => setActiveTab("overview")}
+          style={{
+            flex: 1,
+            padding: "0.5rem",
+            background: activeTab === "overview" ? "#007bff" : "#f8f9fa",
+            color: activeTab === "overview" ? "#fff" : "#333",
+            border: "none",
+            borderBottom:
+              activeTab === "overview" ? "2px solid #0056b3" : "none",
+            cursor: "pointer",
+            fontSize: "1rem"
+          }}>
+          Overview
+        </button>
+        <button
+          onClick={() => setActiveTab("chatbot")}
+          style={{
+            flex: 1,
+            padding: "0.5rem",
+            background: activeTab === "chatbot" ? "#007bff" : "#f8f9fa",
+            color: activeTab === "chatbot" ? "#fff" : "#333",
+            border: "none",
+            borderBottom:
+              activeTab === "chatbot" ? "2px solid #0056b3" : "none",
+            cursor: "pointer",
+            fontSize: "1rem"
+          }}>
+          Chatbot
+        </button>
+      </div>
+      <div
+        style={{
+          flex: 1,
+          overflowY: "auto"
+        }}>
+        {activeTab === "overview" ? <OverviewTab /> : <ChatbotTab />}
+      </div>
     </div>
   )
 }

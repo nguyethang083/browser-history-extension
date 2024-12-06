@@ -1,6 +1,10 @@
+import fs from "fs/promises"
 import { Groq } from "groq-sdk"
 
 const groq = new Groq({ apiKey: process.env.PLASMO_PUBLIC_GROQ_API_KEY })
+
+const CHECKPOINT_FILE = "./chunk_checkpoint.json"
+const MAX_RETRIES = 3 // Maximum retry attempts per chunk
 
 export async function processChunks(
   historyData: any[],
@@ -9,15 +13,56 @@ export async function processChunks(
   const totalChunks = Math.ceil(historyData.length / chunkSize)
   const chunkReports: any[] = []
 
+  let processedChunks: number[] = []
+  try {
+    const checkpointData = await fs.readFile(CHECKPOINT_FILE, "utf8")
+    processedChunks = JSON.parse(checkpointData)
+    console.log("Loaded checkpoint:", processedChunks)
+  } catch (error) {
+    console.log("No checkpoint found. Starting fresh.")
+  }
+
   for (let i = 0; i < totalChunks; i++) {
+    if (processedChunks.includes(i)) {
+      console.log(`Skipping already processed chunk ${i + 1} of ${totalChunks}`)
+      continue
+    }
+
     const chunk = historyData.slice(i * chunkSize, (i + 1) * chunkSize)
     console.log(`Processing chunk ${i + 1} of ${totalChunks}`)
 
-    const chunkReport = await analyzeChunkWithGROQ(chunk)
-    chunkReports.push(chunkReport)
+    let retryCount = 0
+    let success = false
+
+    while (retryCount < MAX_RETRIES && !success) {
+      try {
+        const chunkReport = await analyzeChunkWithGROQ(chunk)
+        chunkReports.push(chunkReport)
+
+        // Mark chunk as processed
+        processedChunks.push(i)
+        await saveCheckpoint(processedChunks)
+
+        success = true
+        console.log(`Chunk ${i + 1} processed successfully.`)
+      } catch (error) {
+        retryCount++
+        console.error(
+          `Error processing chunk ${i + 1} (Attempt ${retryCount} of ${MAX_RETRIES}):`,
+          error
+        )
+      }
+    }
+
+    if (!success) {
+      console.error(
+        `Failed to process chunk ${i + 1} after ${MAX_RETRIES} retries. Saving progress and exiting.`
+      )
+      break
+    }
   }
 
-  console.log("All chunks processed.")
+  console.log("All chunks processed or maximum retries reached.")
   return chunkReports
 }
 
@@ -56,7 +101,6 @@ async function analyzeChunkWithGROQ(chunk: any[]): Promise<any> {
     const responseContent = completion.choices[0]?.message?.content || ""
     console.log("Raw Response from GROQ:", responseContent)
 
-    // Extract JSON using a regex
     const extractedJson = extractJsonFromText(responseContent)
 
     if (extractedJson) {
@@ -73,16 +117,26 @@ async function analyzeChunkWithGROQ(chunk: any[]): Promise<any> {
 
 // Utility function for extracting JSON from a response
 function extractJsonFromText(text: string): any {
-  const match = text.match(/\{[\s\S]*\}/) // Matches the first JSON-like object in the text
+  const match = text.match(/\{[\s\S]*\}/)
   if (!match) {
     console.warn("No JSON-like content found in the text.")
     return null
   }
 
   try {
-    return JSON.parse(match[0]) // Try parsing the matched content
+    return JSON.parse(match[0])
   } catch (error) {
     console.error("Error parsing extracted JSON:", error.message)
     return null
+  }
+}
+
+// Save checkpoint to file
+async function saveCheckpoint(processedChunks: number[]): Promise<void> {
+  try {
+    await fs.writeFile(CHECKPOINT_FILE, JSON.stringify(processedChunks))
+    console.log("Checkpoint saved.")
+  } catch (error) {
+    console.error("Error saving checkpoint:", error)
   }
 }

@@ -23,6 +23,12 @@ importers:
       groq-sdk:
         specifier: ^0.8.0
         version: 0.8.0
+      idb:
+        specifier: ^8.0.0
+        version: 8.0.0
+      idb-vector:
+        specifier: ^0.2.0
+        version: 0.2.0
       plasmo:
         specifier: 0.89.4
         version: 0.89.4(@swc/core@1.9.3(@swc/helpers@0.5.15))(@swc/helpers@0.5.15)(lodash@4.17.21)(postcss@8.4.49)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
@@ -2152,6 +2158,12 @@ packages:
   iconv-lite@0.6.3:
     resolution: {integrity: sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==}
     engines: {node: '>=0.10.0'}
+
+  idb-vector@0.2.0:
+    resolution: {integrity: sha512-U92tjMKJnKG5no3cWQLELThroOK9gSo0zzb9scDjhMAxJn5ai+RHmGdLpyrRcWuMDzDj5mwDimnvH34kU2f9BQ==}
+
+  idb@8.0.0:
+    resolution: {integrity: sha512-l//qvlAKGmQO31Qn7xdzagVPPaHTxXx199MhrAFuVBTPqydcPYBWjkrbv4Y0ktB+GmWOiwHl237UUOrLmQxLvw==}
 
   ieee754@1.2.1:
     resolution: {integrity: sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA==}
@@ -5690,6 +5702,10 @@ snapshots:
     dependencies:
       safer-buffer: 2.1.2
     optional: true
+
+  idb-vector@0.2.0: {}
+
+  idb@8.0.0: {}
 
   ieee754@1.2.1: {}
 

@@ -1,7 +1,8 @@
 import { processChunks } from "./chunkProcessor"
-import { getDailyReport, saveDailyReport } from "./db"
 import { fetchBrowserHistory } from "./history"
 import { finalizeDailyReport } from "./reportAggregator"
+import { sendMessageToGROQ } from "./services/chatbotService"
+import { getDailyReport, saveDailyReport } from "./services/db"
 
 const CLIENT_ID = process.env.PLASMO_PUBLIC_GOOGLE_CLIENT_ID
 const REDIRECT_URI =
@@ -108,5 +109,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ status: "error", message: error.message })
       })
     return true
+  }
+})
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "getChatCompletion") {
+    sendMessageToGROQ(message.messages[0].content)
+      .then((response) => {
+        sendResponse({ success: true, data: response.text })
+      })
+      .catch((error) => {
+        console.error("Error in GROQ response:", error)
+        sendResponse({ success: false, error: error.message })
+      })
+    return true // Required for async response
   }
 })
