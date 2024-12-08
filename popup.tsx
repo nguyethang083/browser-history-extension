@@ -16,7 +16,9 @@ const Popup = () => {
         border: "1px solid #ddd",
         borderRadius: "10px",
         boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)",
-        fontFamily: "Arial, sans-serif"
+        fontFamily: "Arial, sans-serif",
+        display: "flex",
+        flexDirection: "column"
       }}>
       <div
         style={{
@@ -35,7 +37,8 @@ const Popup = () => {
             borderBottom:
               activeTab === "overview" ? "2px solid #0056b3" : "none",
             cursor: "pointer",
-            fontSize: "1rem"
+            fontSize: "1rem",
+            transition: "background 0.3s, color 0.3s"
           }}>
           Overview
         </button>
@@ -50,7 +53,8 @@ const Popup = () => {
             borderBottom:
               activeTab === "chatbot" ? "2px solid #0056b3" : "none",
             cursor: "pointer",
-            fontSize: "1rem"
+            fontSize: "1rem",
+            transition: "background 0.3s, color 0.3s"
           }}>
           Chatbot
         </button>
@@ -58,7 +62,11 @@ const Popup = () => {
       <div
         style={{
           flex: 1,
-          overflowY: "auto"
+          overflowY: "auto",
+          padding: "0.5rem",
+          background: "#fff",
+          borderRadius: "5px",
+          boxShadow: "inset 0px 4px 8px rgba(0, 0, 0, 0.1)"
         }}>
         {activeTab === "overview" ? <OverviewTab /> : <ChatbotTab />}
       </div>

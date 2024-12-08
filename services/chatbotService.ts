@@ -1,12 +1,17 @@
 import { Groq } from "groq-sdk"
 
-import { getDailyReport } from "./db"
+import { getDailyReport, initialize } from "./vectordb"
 
 const groq = new Groq({ apiKey: process.env.PLASMO_PUBLIC_GROQ_API_KEY })
 
 export const sendMessageToGROQ = async (message: string) => {
   const today = new Date().toISOString().split("T")[0]
-  const dailyReport = await getDailyReport(today)
+
+  // Initialize the database and get the reports collection
+  const { reportsCollection } = await initialize()
+
+  // Fetch the daily report from vectordb
+  const dailyReport = await getDailyReport(today, reportsCollection)
 
   let reportText = "No report available for today."
   if (dailyReport) {

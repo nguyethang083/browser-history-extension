@@ -2,7 +2,12 @@ import { processChunks } from "./chunkProcessor"
 import { fetchBrowserHistory } from "./history"
 import { finalizeDailyReport } from "./reportAggregator"
 import { sendMessageToGROQ } from "./services/chatbotService"
-import { getDailyReport, saveDailyReport } from "./services/db"
+import {
+  getDailyReport,
+  initialize,
+  saveDailyReport,
+  viewDatabaseContent
+} from "./services/vectordb"
 
 const CLIENT_ID = process.env.PLASMO_PUBLIC_GOOGLE_CLIENT_ID
 const REDIRECT_URI =
@@ -83,18 +88,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.action === "fetchDailyReport") {
-    getDailyReport(today)
-      .then((report) => {
-        if (report) {
-          sendResponse({ status: "success", report })
-        } else {
-          sendResponse({ status: "error", message: "No report found." })
-        }
-      })
-      .catch((error) => {
-        console.error("Error fetching daily report:", error)
-        sendResponse({ status: "error", message: error.message })
-      })
+    initialize().then(({ reportsCollection }) => {
+      getDailyReport(today, reportsCollection)
+        .then((report) => {
+          if (report) {
+            sendResponse({ status: "success", report })
+          } else {
+            sendResponse({ status: "error", message: "No report found." })
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching daily report:", error)
+          sendResponse({ status: "error", message: error.message })
+        })
+    })
     return true
   }
 
@@ -102,7 +109,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     fetchBrowserHistory()
       .then((history) => processChunks(history))
       .then(finalizeDailyReport)
-      .then((report) => saveDailyReport(today, report))
+      .then((report) =>
+        initialize().then(({ reportsCollection }) =>
+          saveDailyReport(today, report, reportsCollection)
+        )
+      )
       .then(() => sendResponse({ status: "success", message: "Report saved." }))
       .catch((error) => {
         console.error("Error processing history:", error)
@@ -123,5 +134,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message })
       })
     return true // Required for async response
+  }
+
+  if (message.action === "viewDatabaseContent") {
+    initialize().then(({ messagesCollection, vectorCollection }) => {
+      viewDatabaseContent(messagesCollection, vectorCollection)
+        .then((data) => {
+          sendResponse({ status: "success", data })
+        })
+        .catch((error) => {
+          console.error("Error viewing database content:", error)
+          sendResponse({ status: "error", message: error.message })
+        })
+    })
+    return true
   }
 })

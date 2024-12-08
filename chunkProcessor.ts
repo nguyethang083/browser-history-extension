@@ -1,10 +1,22 @@
-import fs from "fs/promises"
 import { Groq } from "groq-sdk"
 
 const groq = new Groq({ apiKey: process.env.PLASMO_PUBLIC_GROQ_API_KEY })
 
-const CHECKPOINT_FILE = "./chunk_checkpoint.json"
+const CHECKPOINT_KEY = "processedChunks"
 const MAX_RETRIES = 3 // Maximum retry attempts per chunk
+const CATEGORIES = [
+  "News",
+  "Social Media",
+  "Shopping",
+  "Entertainment",
+  "Education",
+  "Technology",
+  "Health",
+  "Finance",
+  "Travel",
+  "Sports",
+  "General"
+]
 
 export async function processChunks(
   historyData: any[],
@@ -15,8 +27,8 @@ export async function processChunks(
 
   let processedChunks: number[] = []
   try {
-    const checkpointData = await fs.readFile(CHECKPOINT_FILE, "utf8")
-    processedChunks = JSON.parse(checkpointData)
+    const result = await chrome.storage.local.get(CHECKPOINT_KEY)
+    processedChunks = result[CHECKPOINT_KEY] || []
     console.log("Loaded checkpoint:", processedChunks)
   } catch (error) {
     console.log("No checkpoint found. Starting fresh.")
@@ -72,20 +84,20 @@ async function analyzeChunkWithGROQ(chunk: any[]): Promise<any> {
     .join("\n")
 
   const prompt = `
-      Analyze this browser history chunk by categorizing each site based on its content into one of the following categories:
-      ["News", "Social Media", "Shopping", "Entertainment", "Education", "Technology", "Health", "Finance", "Travel", "Sports", "General"]
-      Return only a valid JSON object in this exact format:
-      {
-        "totalVisits": number,
-        "categories": {"category1": number, "category2": number, ...},
-        "mostVisitedSites": [{"url": "string", "category": "string", "visits": number}, ...],
-        "mostFrequentCategory": {"category": "string", "frequency": number},
-        "mostFrequentSite": {"url": "string", "category": "string", "visits": number}
-      }
-      Do not include any additional text, explanation, or formatting outside the JSON object. Repond in JSON ONLY!!!
-      Analyze the following data:
-      ${historyText}
-    `
+    Analyze this browser history chunk by categorizing each site based on its content into one of the following categories:
+    ${JSON.stringify(CATEGORIES)}
+    Return only a valid JSON object in this exact format:
+    {
+      "totalVisits": number,
+      "categories": {"category1": number, "category2": number, ...},
+      "mostVisitedSites": [{"url": "string", "category": "string", "visits": number}, ...],
+      "mostFrequentCategory": {"category": "string", "frequency": number},
+      "mostFrequentSite": {"url": "string", "category": "string", "visits": number}
+    }
+    Do not include any additional text, explanation, or formatting outside the JSON object. Respond in JSON ONLY!!!
+    Analyze the following data:
+    ${historyText}
+  `
 
   console.log("Prompt sent to GROQ:", prompt)
 
@@ -131,10 +143,10 @@ function extractJsonFromText(text: string): any {
   }
 }
 
-// Save checkpoint to file
+// Save checkpoint to storage
 async function saveCheckpoint(processedChunks: number[]): Promise<void> {
   try {
-    await fs.writeFile(CHECKPOINT_FILE, JSON.stringify(processedChunks))
+    await chrome.storage.local.set({ [CHECKPOINT_KEY]: processedChunks })
     console.log("Checkpoint saved.")
   } catch (error) {
     console.error("Error saving checkpoint:", error)

@@ -1,3 +1,5 @@
+import { initialize, saveDailyReport } from "./services/vectordb"
+
 export async function finalizeDailyReport(chunkReports: any[]): Promise<any> {
   console.log("Chunk Reports:", chunkReports)
 
@@ -84,5 +86,11 @@ export async function finalizeDailyReport(chunkReports: any[]): Promise<any> {
   }
 
   console.log("Final Aggregated Report:", aggregatedReport)
+
+  // Save the aggregated report to vectordb
+  const { reportsCollection } = await initialize()
+  const today = new Date().toISOString().split("T")[0]
+  await saveDailyReport(today, aggregatedReport, reportsCollection)
+
   return aggregatedReport
 }

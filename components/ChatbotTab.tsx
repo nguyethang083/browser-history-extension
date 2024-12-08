@@ -1,24 +1,48 @@
 import React, { useEffect, useState } from "react"
+import ReactMarkdown from "react-markdown"
 
 import {
   clearChatMessages,
   getChatMessages,
-  saveChatMessage
-} from "../services/db"
+  initialize,
+  saveChatMessage,
+  viewDatabaseContent
+} from "../services/vectordb"
 
 const ChatbotTab = () => {
   const [chatMessages, setChatMessages] = useState([])
   const [userMessage, setUserMessage] = useState("")
   const [loading, setLoading] = useState(false)
+  const [collections, setCollections] = useState(null)
 
   useEffect(() => {
-    loadChatMessages()
+    const initDB = async () => {
+      const { messagesCollection, vectorCollection } = await initialize()
+      setCollections({ messagesCollection, vectorCollection })
+      loadChatMessages(messagesCollection)
+    }
+    initDB()
   }, [])
 
   // Load chat messages from IndexedDB
-  const loadChatMessages = async () => {
-    const messages = await getChatMessages()
+  const loadChatMessages = async (messagesCollection) => {
+    const messages = await getChatMessages(messagesCollection)
     setChatMessages(messages)
+  }
+
+  // View database content
+  const handleViewDatabaseContent = async () => {
+    console.log("Viewing database content...")
+    chrome.runtime.sendMessage(
+      { action: "viewDatabaseContent" },
+      (response) => {
+        if (response?.status === "success") {
+          console.log("Database content:", response.data)
+        } else {
+          console.error("Error viewing database content:", response?.message)
+        }
+      }
+    )
   }
 
   // Fetch bot reply using Groq
@@ -49,9 +73,14 @@ const ChatbotTab = () => {
     e.preventDefault()
     if (!userMessage.trim()) return
 
-    const userMsg = { type: "user", text: userMessage, timestamp: Date.now() }
+    const userMsg = {
+      id: crypto.randomUUID(),
+      type: "user",
+      text: userMessage,
+      timestamp: Date.now()
+    }
     setChatMessages((prevMessages) => [...prevMessages, userMsg])
-    await saveChatMessage(userMsg)
+    await saveChatMessage(userMsg, collections.messagesCollection)
     setUserMessage("")
     setLoading(true)
 
@@ -59,13 +88,14 @@ const ChatbotTab = () => {
       const botReplyText = await fetchBotReply(userMessage)
       console.log("Bot reply:", botReplyText)
       const botReply = {
+        id: crypto.randomUUID(),
         type: "bot",
         text: botReplyText,
         timestamp: Date.now()
       }
 
       setChatMessages((prevMessages) => [...prevMessages, botReply])
-      await saveChatMessage(botReply)
+      await saveChatMessage(botReply, collections.messagesCollection)
     } catch (error) {
       console.error("Error sending message to GROQ:", error)
     } finally {
@@ -75,7 +105,7 @@ const ChatbotTab = () => {
 
   // Clear chat history
   const clearChatHistory = async () => {
-    await clearChatMessages()
+    await clearChatMessages(collections.messagesCollection)
     setChatMessages([])
   }
 
@@ -89,7 +119,9 @@ const ChatbotTab = () => {
           border: "1px solid #ddd",
           borderRadius: "5px",
           padding: "1rem",
-          marginBottom: "1rem"
+          marginBottom: "1rem",
+          background: "#fff",
+          boxShadow: "inset 0px 4px 8px rgba(0, 0, 0, 0.1)"
         }}>
         {chatMessages.map((message, index) => (
           <div
@@ -108,7 +140,7 @@ const ChatbotTab = () => {
                 maxWidth: "70%",
                 wordWrap: "break-word"
               }}>
-              {message.text}
+              <ReactMarkdown>{message.text}</ReactMarkdown>
             </p>
           </div>
         ))}
@@ -136,7 +168,8 @@ const ChatbotTab = () => {
             color: "#fff",
             border: "none",
             borderRadius: "5px",
-            cursor: "pointer"
+            cursor: "pointer",
+            transition: "background 0.3s"
           }}
           disabled={loading}>
           {loading ? "Sending..." : "Send"}
@@ -151,9 +184,24 @@ const ChatbotTab = () => {
           color: "#fff",
           border: "none",
           borderRadius: "5px",
-          cursor: "pointer"
+          cursor: "pointer",
+          transition: "background 0.3s"
         }}>
         Clear Chat
+      </button>
+      <button
+        onClick={handleViewDatabaseContent}
+        style={{
+          marginTop: "1rem",
+          padding: "0.5rem 1rem",
+          background: "#28a745",
+          color: "#fff",
+          border: "none",
+          borderRadius: "5px",
+          cursor: "pointer",
+          transition: "background 0.3s"
+        }}>
+        View Database Content
       </button>
     </div>
   )

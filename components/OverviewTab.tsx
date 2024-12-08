@@ -85,16 +85,7 @@ const OverviewTab = () => {
   }
 
   return (
-    <div
-      style={{
-        width: "320px",
-        height: "500px",
-        padding: "1rem",
-        background: "#f9f9f9",
-        border: "1px solid #ddd",
-        borderRadius: "10px",
-        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.2)"
-      }}>
+    <div>
       <h1>Your Daily Activities</h1>
       <button
         onClick={processBrowserHistory}
@@ -105,7 +96,8 @@ const OverviewTab = () => {
           color: "#fff",
           border: "none",
           borderRadius: "5px",
-          cursor: "pointer"
+          cursor: "pointer",
+          transition: "background 0.3s"
         }}>
         Fetch Data
       </button>
